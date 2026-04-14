@@ -1,0 +1,31 @@
+{
+  "compilerOptions": {
+    // Output JavaScript version
+    "target": "es6",
+    // Use CommonJS modules for Node.js
+    "module": "commonjs",
+    // Compile files into the build folder
+    "outDir": "./build",
+    // Load Node.js global types
+    "types": [
+      "node",
+      "jasmine",
+      "express"
+    ],
+    // Enable all strict type-checking options
+    "strict": true,
+    // Prevent implicit any types
+    "noImplicitAny": true,
+    // Improve compatibility with CommonJS imports
+    "esModuleInterop": true,
+    // Keep file-name casing consistent across imports
+    "forceConsistentCasingInFileNames": true,
+    // Skip type checking for library declaration files
+    "skipLibCheck": true
+  },
+  // Ignore generated and dependency folders
+  "exclude": [
+    "node_modules",
+    "build"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "name": "storefront_backend",
+  "version": "0.1.0",
+  "description": "",
+  "main": "source/index.ts",
+  "scripts": {
+    "start": "ts-node source/index.ts",
+    "watch": "tsc-watch --esModuleInterop source/index.ts --outDir ./build --onSuccess \"node ./build/index.js\"",
+    "test": "jasmine",
+    "_comment": "//back make test at siprate database",
+    "tsc": "tsc"
+  },
+  "author": "zaid abdallah",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^2.2.2",
+    "express": "^5.2.1",
+    "pg": "^8.20.0",
+    "typescript": "^5.9.3"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jasmine": "^6.0.0",
+    "@types/pg": "^8.20.0",
+    "@types/supertest": "^7.2.0",
+    "jasmine": "^6.2.0",
+    "jasmine-spec-reporter": "^7.0.0",
+    "supertest": "^7.2.2",
+    "ts-node": "^10.9.2",
+    "tsc-watch": "^7.2.0"
+  }
+}
