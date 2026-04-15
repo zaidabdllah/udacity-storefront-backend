@@ -8,8 +8,10 @@
     "watch": "tsc-watch --esModuleInterop source/index.ts --outDir ./build --onSuccess \"node ./build/index.js\"",
     "test": "jasmine",
     "_comment": "//back make test at siprate database",
-    "tsc": "tsc"
-  },
+    "migrate:create": "db-migrate create --sql-file --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations",
+    "migrate:up": "db-migrate up --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations --env dev",
+    "migrate:down": "db-migrate down --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations --env dev"
+    },
   "author": "zaid abdallah",
   "license": "ISC",
   "dependencies": {
@@ -24,6 +26,8 @@
     "@types/jasmine": "^6.0.0",
     "@types/pg": "^8.20.0",
     "@types/supertest": "^7.2.0",
+    "db-migrate": "^0.11.14",
+    "db-migrate-pg": "^1.5.2",
     "jasmine": "^6.2.0",
     "jasmine-spec-reporter": "^7.0.0",
     "supertest": "^7.2.2",
