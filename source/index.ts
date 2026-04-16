@@ -1,25 +1,28 @@
 import express from 'express';
 import dotenv from 'dotenv';
 import DBService from './database/DBService';
+import userRoutes from './handlers/routes/users';
 
 dotenv.config();
 
-const DB = DBService;
-
-DB.testConnection()//to verify database connection before starting the server
-
 const app = express();
 const port = process.env.PORT || 3000;
+let isServerStarted = false;
 
 app.use(express.json());
+app.use('/users', userRoutes);
 
-app.use('/', (req, res) => {
-    res.status(200)
-    res.send('Hello World!');
-});
+const startServer = (): void => {
+    if (isServerStarted) return;
+    isServerStarted = true;
+
+    DBService.testConnection(); // verify DB connection before starting the server
 
 app.listen(port, () => {
-    console.log(`Server is running on http://localhost:${port}`);
+console.log(`Server is running on http://localhost:${port}`);
 });
+};
+
+startServer();
 
 export default app;
