@@ -59,6 +59,18 @@ class DBService {
         }
     }
 
+    static async query<T extends QueryResultRow>(
+        sql: string,
+        params: any[] = []
+    ): Promise<QueryResult<T>> {
+        let client: PoolClient | undefined;
+        try {
+            client = await DBService.pool.connect();
+            return await client.query<T>(sql, params);
+        } finally {
+            client?.release();
+        }
+    }
 }
 
 export default DBService;
