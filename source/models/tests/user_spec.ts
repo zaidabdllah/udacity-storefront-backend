@@ -1,5 +1,5 @@
 import DBService from '../../database/DBService';
-import { UserModel } from '../user';
+import { UserModel, User } from '../user';
 
 describe('UserModel', () => {
     const model = new UserModel();
@@ -43,7 +43,7 @@ describe('UserModel', () => {
         expect(users.length).toBe(2);
         expect(users[0].username).toBe('alpha');
         expect(users[1].username).toBe('beta');
-        expect((users[0] as any).password_digest).toBeUndefined();
+        expect((users[0] as User).password_digest).toBeUndefined();
     });
 
     it('shows a user by id and by username', async () => {
