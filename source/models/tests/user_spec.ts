@@ -13,6 +13,10 @@ describe('UserModel', () => {
         await DBService.query('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
     });
 
+    afterAll(async () => {
+        await DBService.query('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
+    });
+
     it('has the expected public methods', () => {
         expect(model.index).toBeDefined();
         expect(model.show).toBeDefined();
