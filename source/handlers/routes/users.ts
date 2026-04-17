@@ -13,7 +13,19 @@ const tokenSecret = process.env.TOKEN_SECRET as string;
 UserRouter.post('/register', async (req: Request, res: Response) => {
     const userData: User = req.body;
     try {
-
+        if (!userData.password) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PASSWORD_REQUIRED',
+                error: 'Password is required'
+            });
+        } else if (userData.password.length < 6) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PASSWORD_TOO_SHORT',
+                error: 'Password must be at least 6 characters'
+            });
+        }
         const newUser = await userModel.create(userData);
         const token = jwt.sign({ id: newUser.id, username: newUser.username }, tokenSecret);
 
@@ -61,18 +73,6 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
                 code: 'USERNAME_INVALID_FORMAT',
                 error: 'Username can only contain lowercase letters, numbers, dots, and underscores'
             });
-        } else if (!userData.password) {
-            return res.status(400).json({
-                ok: false,
-                code: 'PASSWORD_REQUIRED',
-                error: 'Password is required'
-            });
-        } else if (userData.password.length < 6) {
-            return res.status(400).json({
-                ok: false,
-                code: 'PASSWORD_TOO_SHORT',
-                error: 'Password must be at least 6 characters'
-            });
         } else {
             return res.status(500).json({
                 ok: false,
@@ -86,6 +86,25 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
 UserRouter.post('/login', async (req: Request, res: Response) => {
     const { username, password } = req.body;
     try {
+        if (typeof password !== 'string' || password.trim().length === 0) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PASSWORD_EMPTY',
+                error: 'Password cannot be empty'
+            });
+        } else if (typeof username !== 'string' || username.trim().length === 0) {
+            return res.status(400).json({
+                ok: false,
+                code: 'USERNAME_EMPTY',
+                error: 'Username cannot be empty'
+            });
+        } else if (password.length < 6) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PASSWORD_TOO_SHORT',
+                error: 'Password must be at least 6 characters'
+            });
+        }
         const user = await userModel.authenticate(username, password);
 
         if (user) {
@@ -113,7 +132,7 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
     }
 });
 
-UserRouter.get('/',verifyAuthToken, async (req: Request, res: Response) => {
+UserRouter.get('/', verifyAuthToken, async (req: Request, res: Response) => {
     try {
         const users = await userModel.index();
         res.status(200).json({ ok: true, code: 'USERS_RETRIEVED', users });
@@ -122,7 +141,7 @@ UserRouter.get('/',verifyAuthToken, async (req: Request, res: Response) => {
     }
 });
 
-UserRouter.get('/:identifier',verifyAuthToken,  async (req: Request, res: Response) => {
+UserRouter.get('/:identifier', verifyAuthToken, async (req: Request, res: Response) => {
     const identifier = req.params.identifier as string | number;
     try {
         const user = await userModel.show(identifier);
@@ -130,7 +149,7 @@ UserRouter.get('/:identifier',verifyAuthToken,  async (req: Request, res: Respon
             res.status(200).json({ ok: true, code: 'USER_RETRIEVED', user });
         } else {
             res.status(404).json({ ok: false, code: 'USER_NOT_FOUND', error: 'User not found' });
-        }   
+        }
     } catch (error) {
         res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
     }
