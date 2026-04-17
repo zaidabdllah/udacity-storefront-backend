@@ -95,7 +95,21 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
             res.status(401).json({ ok: false, code: 'INVALID_CREDENTIALS', error: 'Invalid username or password' });
         }
     } catch (error) {
-        res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
+        if (!username) {
+            return res.status(400).json({
+                ok: false,
+                code: 'USERNAME_REQUIRED',
+                error: 'Username is required'
+            });
+        } else if (!password) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PASSWORD_REQUIRED',
+                error: 'Password is required'
+            });
+        } else {
+            return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
+        }
     }
 });
 
