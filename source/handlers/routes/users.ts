@@ -43,12 +43,6 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
                 code: 'USERNAME_TOO_LONG',
                 error: 'Username must not exceed 20 characters'
             });
-        } else if (userData.username !== userData.username.toLowerCase()) {
-            return res.status(400).json({
-                ok: false,
-                code: 'USERNAME_MUST_BE_LOWERCASE',
-                error: 'Username must contain only lowercase letters'
-            });
         } else if (/\s/.test(userData.username)) {
             return res.status(400).json({
                 ok: false,
@@ -61,11 +55,11 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
                 code: 'USERNAME_MUST_CONTAIN_LETTER',
                 error: 'Username must contain at least one letter'
             });
-        } else if (!/^[a-z0-9._]+$/.test(userData.username)) {
+        } else if (!/^(?=.*[a-zA-Z])[a-zA-Z][a-zA-Z0-9._]{2,19}$/.test(userData.username)) {
             return res.status(400).json({
                 ok: false,
                 code: 'USERNAME_INVALID_FORMAT',
-                error: 'Username can only contain lowercase letters, numbers, dots, and underscores'
+                error: 'Username must start with a letter and contain only letters, numbers, dots, and underscores'
             });
         }
         const newUser = await userModel.create(userData);
@@ -122,7 +116,7 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
                 code: 'PASSWORD_REQUIRED',
                 error: 'Password is required'
             });
-        } 
+        }
         const user = await userModel.authenticate(username, password);
 
         if (user) {
@@ -132,7 +126,7 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
             res.status(401).json({ ok: false, code: 'INVALID_CREDENTIALS', error: 'Invalid username or password' });
         }
     } catch (error) {
-            return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
+        return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
     }
 });
 
