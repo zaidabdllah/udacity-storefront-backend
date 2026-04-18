@@ -25,18 +25,6 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
                 code: 'PASSWORD_TOO_SHORT',
                 error: 'Password must be at least 6 characters'
             });
-        }
-        const newUser = await userModel.create(userData);
-        const token = jwt.sign({ id: newUser.id, username: newUser.username }, tokenSecret);
-
-        res.status(201).json({ ok: true, code: 'USER_CREATED', jwtToken: token });
-    } catch (error) {
-        if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
-            return res.status(409).json({
-                ok: false,
-                code: 'USERNAME_ALREADY_EXISTS',
-                error: 'Username already exists'
-            });
         } else if (!userData.username) {
             return res.status(400).json({
                 ok: false,
@@ -67,11 +55,29 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
                 code: 'USERNAME_CONTAINS_SPACES',
                 error: 'Username must not contain spaces'
             });
+        } else if (!/[a-z]/.test(userData.username)) {
+            return res.status(400).json({
+                ok: false,
+                code: 'USERNAME_MUST_CONTAIN_LETTER',
+                error: 'Username must contain at least one letter'
+            });
         } else if (!/^[a-z0-9._]+$/.test(userData.username)) {
             return res.status(400).json({
                 ok: false,
                 code: 'USERNAME_INVALID_FORMAT',
                 error: 'Username can only contain lowercase letters, numbers, dots, and underscores'
+            });
+        }
+        const newUser = await userModel.create(userData);
+        const token = jwt.sign({ id: newUser.id, username: newUser.username }, tokenSecret);
+
+        res.status(201).json({ ok: true, code: 'USER_CREATED', jwtToken: token });
+    } catch (error) {
+        if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
+            return res.status(409).json({
+                ok: false,
+                code: 'USERNAME_ALREADY_EXISTS',
+                error: 'Username already exists'
             });
         } else {
             return res.status(500).json({
@@ -104,17 +110,7 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
                 code: 'PASSWORD_TOO_SHORT',
                 error: 'Password must be at least 6 characters'
             });
-        }
-        const user = await userModel.authenticate(username, password);
-
-        if (user) {
-            const token = jwt.sign({ id: user.id, username: user.username }, tokenSecret);
-            res.status(200).json({ ok: true, code: 'LOGIN_SUCCESS', jwtToken: token });
-        } else {
-            res.status(401).json({ ok: false, code: 'INVALID_CREDENTIALS', error: 'Invalid username or password' });
-        }
-    } catch (error) {
-        if (!username) {
+        } else if (!username) {
             return res.status(400).json({
                 ok: false,
                 code: 'USERNAME_REQUIRED',
@@ -126,9 +122,17 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
                 code: 'PASSWORD_REQUIRED',
                 error: 'Password is required'
             });
+        } 
+        const user = await userModel.authenticate(username, password);
+
+        if (user) {
+            const token = jwt.sign({ id: user.id, username: user.username }, tokenSecret);
+            res.status(200).json({ ok: true, code: 'LOGIN_SUCCESS', jwtToken: token });
         } else {
-            return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
+            res.status(401).json({ ok: false, code: 'INVALID_CREDENTIALS', error: 'Invalid username or password' });
         }
+    } catch (error) {
+            return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
     }
 });
 
