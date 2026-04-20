@@ -111,7 +111,22 @@ ProductRouter.get('/category/:category', async (req: Request, res: Response) => 
 });
 
 ProductRouter.get('/popular/:limit', async (req: Request, res: Response) => {
-    res.status(501).json({ ok: false, code: 'NOT_IMPLEMENTED', error: 'This endpoint is not implemented yet' });//back work on it later
+    const limitRaw = req.params.limit;
+    const limit = Number(limitRaw);
+    try {
+        if (!Number.isInteger(limit) || limit <= 0) {
+            return res.status(400).json({
+                ok: false,
+                code: 'INVALID_LIMIT',
+                error: 'Limit must be a positive integer'
+            });
+        }
+        const products = await productmodel.GetpopularProducts(limit);
+        res.json({ ok: true, code: 'POPULAR_PRODUCTS_RETRIEVED', products });
+    }
+    catch (error) {
+        res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });
+    }
 });
 
 export default ProductRouter;

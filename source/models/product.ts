@@ -5,6 +5,7 @@ export type Product = {
     name: string;
     price: number | string;
     category?: string;
+    total_sold?: number | string;
 };
 
 export class ProductModel {
@@ -45,6 +46,24 @@ export class ProductModel {
             return result.rows;
         } catch (err) {
             throw new Error(`failed to retrieve products by category (${category}), ${err}`);
+        }
+    }
+
+    async GetpopularProducts(limit: number): Promise<Product[]> {
+        try {
+            const sql = `SELECT p.id, p.name, p.price, p.category, SUM(oi.quantity) AS total_sold
+                FROM products p
+                INNER JOIN order_products oi ON oi.product_id = p.id
+                INNER JOIN orders o ON o.id = oi.order_id
+                WHERE o.status = 'complete'
+                GROUP BY p.id
+                ORDER BY total_sold DESC
+                LIMIT $1;`;
+            const result = await DBService.query<Product>(sql, [limit]);
+            return result.rows;
+        }
+        catch (err) {
+            throw new Error(`failed to retrieve popular products, ${err}`);
         }
     }
 }
