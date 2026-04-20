@@ -20,8 +20,7 @@ describe('Products routes', () => {
     });
 
     beforeEach(async () => {
-        await DBService.query('TRUNCATE TABLE products RESTART IDENTITY CASCADE');
-        await DBService.query('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
+        await DBService.query('TRUNCATE TABLE order_products, orders, products, users RESTART IDENTITY CASCADE');
     });
 
     it('GET /products returns products list', async () => {
@@ -116,5 +115,76 @@ describe('Products routes', () => {
         expect(response.body.products.length).toBe(2);
         expect(response.body.products[0].name).toBe('USB-C Cable');
         expect(response.body.products[1].name).toBe('Mouse Pad');
+    });
+
+    it('GET /products/popular/:limit returns top popular products from completed orders', async () => {
+        const userResult = await DBService.query<{ id: number }>(
+            `INSERT INTO users (username, first_name, last_name, password_digest)
+             VALUES ($1, $2, $3, $4)
+             RETURNING id`,
+            ['popularroute', 'Pop', 'Route', 'hashed-password']
+        );
+        const userId = userResult.rows[0].id;
+
+        const hammer = await DBService.query<{ id: number }>(
+            `INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id`,
+            ['Route Hammer', 12, 'tools']
+        );
+        const drill = await DBService.query<{ id: number }>(
+            `INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id`,
+            ['Route Drill', 45, 'tools']
+        );
+        const saw = await DBService.query<{ id: number }>(
+            `INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id`,
+            ['Route Saw', 18, 'tools']
+        );
+
+        const completeOrder1 = await DBService.query<{ id: number }>(
+            `INSERT INTO orders (user_id, status) VALUES ($1, 'complete') RETURNING id`,
+            [userId]
+        );
+        const completeOrder2 = await DBService.query<{ id: number }>(
+            `INSERT INTO orders (user_id, status) VALUES ($1, 'complete') RETURNING id`,
+            [userId]
+        );
+        const activeOrder = await DBService.query<{ id: number }>(
+            `INSERT INTO orders (user_id, status) VALUES ($1, 'active') RETURNING id`,
+            [userId]
+        );
+
+        await DBService.query(
+            `INSERT INTO order_products (order_id, product_id, quantity)
+             VALUES ($1, $2, $3), ($1, $4, $5), ($6, $2, $7), ($6, $8, $9), ($10, $8, $11)`,
+            [
+                completeOrder1.rows[0].id, hammer.rows[0].id, 2, drill.rows[0].id, 5,
+                completeOrder2.rows[0].id, 4, saw.rows[0].id, 1,
+                activeOrder.rows[0].id, 100
+            ]
+        );
+
+        const response = await request(app).get('/products/popular/2');
+
+        expect(response.status).toBe(200);
+        expect(response.body.code).toBe('POPULAR_PRODUCTS_RETRIEVED');
+        expect(response.body.products.length).toBe(2);
+        expect(response.body.products[0].name).toBe('Route Hammer');
+        expect(response.body.products[1].name).toBe('Route Drill');
+        expect(Number(response.body.products[0].total_sold)).toBe(6);
+        expect(Number(response.body.products[1].total_sold)).toBe(5);
+    });
+
+    it('GET /products/popular/:limit validates limit as positive integer', async () => {
+        const nonNumericResponse = await request(app).get('/products/popular/not-a-number');
+        const zeroResponse = await request(app).get('/products/popular/0');
+        const decimalResponse = await request(app).get('/products/popular/2.5');
+
+        expect(nonNumericResponse.status).toBe(400);
+        expect(nonNumericResponse.body.code).toBe('INVALID_LIMIT');
+
+        expect(zeroResponse.status).toBe(400);
+        expect(zeroResponse.body.code).toBe('INVALID_LIMIT');
+
+        expect(decimalResponse.status).toBe(400);
+        expect(decimalResponse.body.code).toBe('INVALID_LIMIT');
     });
 });
