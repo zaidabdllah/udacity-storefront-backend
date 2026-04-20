@@ -162,6 +162,7 @@ export class OrderModel {
                 p.id AS product_id,
                 p.name,
                 p.price,
+                p.category,
                 op.quantity
             FROM order_products op
             LEFT JOIN products p ON p.id = op.product_id
