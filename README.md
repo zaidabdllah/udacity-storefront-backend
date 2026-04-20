@@ -112,6 +112,63 @@ Test database migrations:
 npm run migrate:up:test
 ```
 
+## Seed Utilities
+The project includes optional seed services for loading demo data into PostgreSQL. These scripts are useful for:
+- populating the database quickly for manual API testing
+- giving the frontend developer ready data to work against
+- generating realistic sample orders for features like recent purchases and popular products
+
+### `source/services/databaseDumpSeedService.ts`
+Purpose:
+- truncates `order_products`, `orders`, `users`, and `products`
+- seeds the products catalog
+- seeds demo users with hashed passwords
+- seeds completed and active orders with random product quantities
+
+When to use it:
+- when you want a full demo dataset
+- when you need data for cart, completed orders, recent purchases, and popular products
+
+Run against development database:
+
+```bash
+npm run seed:dump
+```
+
+Run against test database:
+
+```bash
+npm run seed:dump:test
+```
+
+Seeded login note:
+- all users created by the dump seed use the password `seedpass123`
+
+Important:
+- these scripts delete existing data from the affected tables before inserting fresh seed data
+- they use the database selected by `ENV`, so confirm your environment before running them
+
+### `source/services/productSeedService.ts`
+Purpose:
+- truncates the `products` table with `RESTART IDENTITY CASCADE`
+- inserts a predefined catalog of sample products across multiple categories
+
+When to use it:
+- when you only need product data
+- when you want a clean product catalog without users or orders
+
+Run against development database:
+
+```bash
+npm run seed:products
+```
+
+Run against test database:
+
+```bash
+npm run seed:products:test
+```
+
 ## Start the Server
 Development watch mode:
 
