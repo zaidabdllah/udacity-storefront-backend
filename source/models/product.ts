@@ -49,6 +49,55 @@ export class ProductModel {
         }
     }
 
+    async update(id: number, data: Partial<Product>): Promise<Product | null> {
+        try {
+            const setClauses: string[] = [];
+            const values: Array<string | number> = [];
+
+            if (data.name !== undefined) {
+                values.push(data.name);
+                setClauses.push(`name = $${values.length}`);
+            }
+
+            if (data.price !== undefined) {
+                values.push(data.price);
+                setClauses.push(`price = $${values.length}`);
+            }
+
+            if (data.category !== undefined) {
+                values.push(data.category.toLowerCase());
+                setClauses.push(`category = $${values.length}`);
+            }
+
+            if (setClauses.length === 0) {
+                return null;
+            }
+
+            values.push(id);
+
+            const sql = `UPDATE products
+                SET ${setClauses.join(', ')}
+                WHERE id = $${values.length}
+                RETURNING *;`;
+
+            const result = await DBService.query<Product>(sql, values);
+
+            return result.rows[0] || null;
+        } catch (err) {
+            throw new Error(`failed to update product (${id}), ${err}`);
+        }
+    }
+
+    async delete(id: number): Promise<Product | null> {
+        try {
+            const sql = 'DELETE FROM products WHERE id = $1 RETURNING *';
+            const result = await DBService.query<Product>(sql, [id]);
+            return result.rows[0] || null;
+        } catch (err) {
+            throw new Error(`failed to delete product (${id}), ${err}`);
+        }
+    }
+
     async GetpopularProducts(limit: number): Promise<Product[]> {
         try {
             const sql = `SELECT p.id, p.name, p.price, p.category, SUM(oi.quantity) AS total_sold

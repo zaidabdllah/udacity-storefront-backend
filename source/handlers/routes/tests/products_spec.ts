@@ -14,6 +14,12 @@ describe('Products routes', () => {
         return registerResponse.body.jwtToken as string;
     };
 
+    const createProductRecord = async (name: string, price: number, category: string): Promise<number> => {
+        const result = await DBService.query<{ id: number }>(
+            `INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id`,[name, price, category]);
+        return result.rows[0].id;
+    };
+
     beforeAll(async () => {
         const result = await DBService.query<{ current_database: string }>('SELECT current_database()');
         expect(result.rows[0].current_database).toBe(process.env.POSTGRES_TEST_DB as string);
@@ -71,6 +77,82 @@ describe('Products routes', () => {
         expect(response.body.code).toBe('PRODUCT_PRICE_MUST_BE_NUMBER');
     });
 
+    it('PATCH /products/:id requires a token', async () => {
+        const productId = await createProductRecord('Patch No Token', 15, 'tools');
+        const response = await request(app).patch(`/products/${productId}`).send({ price: 20 });
+
+        expect(response.status).toBe(401);
+        expect(response.body.code).toBe('MISSING_TOKEN');
+    });
+
+    it('PATCH /products/:id updates product fields partially or together', async () => {
+        const token = await createAuthToken();
+        const productId = await createProductRecord('Old Mouse', 20, 'accessories');
+
+        const updatePriceResponse = await request(app)
+            .patch(`/products/${productId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ price: 30 });
+
+        expect(updatePriceResponse.status).toBe(200);
+        expect(updatePriceResponse.body.code).toBe('PRODUCT_UPDATED');
+        expect(updatePriceResponse.body.product.name).toBe('Old Mouse');
+        expect(Number(updatePriceResponse.body.product.price)).toBe(30);
+        expect(updatePriceResponse.body.product.category).toBe('accessories');
+
+        const updateNameAndCategoryResponse = await request(app)
+            .patch(`/products/${productId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ name: 'New Mouse', category: 'Electronics' });
+
+        expect(updateNameAndCategoryResponse.status).toBe(200);
+        expect(updateNameAndCategoryResponse.body.code).toBe('PRODUCT_UPDATED');
+        expect(updateNameAndCategoryResponse.body.product.name).toBe('New Mouse');
+        expect(Number(updateNameAndCategoryResponse.body.product.price)).toBe(30);
+        expect(updateNameAndCategoryResponse.body.product.category).toBe('electronics');
+    });
+
+    it('PATCH /products/:id validates id and payload', async () => {
+        const token = await createAuthToken();
+        const productId = await createProductRecord('Validation Item', 12, 'tools');
+
+        const invalidIdResponse = await request(app)
+            .patch('/products/not-a-number')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ price: 33 });
+
+        const emptyPayloadResponse = await request(app)
+            .patch(`/products/${productId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({});
+
+        const invalidCategoryResponse = await request(app)
+            .patch(`/products/${productId}`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ category: '' });
+
+        expect(invalidIdResponse.status).toBe(400);
+        expect(invalidIdResponse.body.code).toBe('PRODUCT_ID_INVALID');
+
+        expect(emptyPayloadResponse.status).toBe(400);
+        expect(emptyPayloadResponse.body.code).toBe('PRODUCT_UPDATE_FIELDS_REQUIRED');
+
+        expect(invalidCategoryResponse.status).toBe(400);
+        expect(invalidCategoryResponse.body.code).toBe('PRODUCT_CATEGORY_EMPTY');
+    });
+
+    it('PATCH /products/:id returns 404 when product does not exist', async () => {
+        const token = await createAuthToken();
+
+        const response = await request(app)
+            .patch('/products/9999')
+            .set('Authorization', `Bearer ${token}`)
+            .send({ price: 55 });
+
+        expect(response.status).toBe(404);
+        expect(response.body.code).toBe('PRODUCT_NOT_FOUND');
+    });
+
     it('GET /products/:id returns product and 404 for missing product', async () => {
         const token = await createAuthToken();
         await request(app).post('/products').set('Authorization', `Bearer ${token}`).send({
@@ -115,6 +197,50 @@ describe('Products routes', () => {
         expect(response.body.products.length).toBe(2);
         expect(response.body.products[0].name).toBe('USB-C Cable');
         expect(response.body.products[1].name).toBe('Mouse Pad');
+    });
+
+    it('DELETE /products/:id requires a token', async () => {
+        const productId = await createProductRecord('Delete No Token', 8, 'tools');
+        const response = await request(app).delete(`/products/${productId}`);
+
+        expect(response.status).toBe(401);
+        expect(response.body.code).toBe('MISSING_TOKEN');
+    });
+
+    it('DELETE /products/:id deletes product and returns 404 on subsequent fetch', async () => {
+        const token = await createAuthToken();
+        const productId = await createProductRecord('Delete Target', 22, 'tools');
+
+        const deleteResponse = await request(app)
+            .delete(`/products/${productId}`)
+            .set('Authorization', `Bearer ${token}`);
+        const fetchAfterDeleteResponse = await request(app).get(`/products/${productId}`);
+
+        expect(deleteResponse.status).toBe(200);
+        expect(deleteResponse.body.code).toBe('PRODUCT_DELETED');
+        expect(deleteResponse.body.product.id).toBe(productId);
+        expect(deleteResponse.body.product.name).toBe('Delete Target');
+
+        expect(fetchAfterDeleteResponse.status).toBe(404);
+        expect(fetchAfterDeleteResponse.body.code).toBe('PRODUCT_NOT_FOUND');
+    });
+
+    it('DELETE /products/:id validates id and handles not found', async () => {
+        const token = await createAuthToken();
+
+        const invalidIdResponse = await request(app)
+            .delete('/products/invalid-id')
+            .set('Authorization', `Bearer ${token}`);
+
+        const missingResponse = await request(app)
+            .delete('/products/9999')
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(invalidIdResponse.status).toBe(400);
+        expect(invalidIdResponse.body.code).toBe('PRODUCT_ID_INVALID');
+
+        expect(missingResponse.status).toBe(404);
+        expect(missingResponse.body.code).toBe('PRODUCT_NOT_FOUND');
     });
 
     it('GET /products/popular/:limit returns top popular products from completed orders', async () => {

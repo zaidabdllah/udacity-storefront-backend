@@ -22,6 +22,8 @@ describe('ProductModel', () => {
         expect(model.show).toBeDefined();
         expect(model.create).toBeDefined();
         expect(model.showByCategory).toBeDefined();
+        expect(model.update).toBeDefined();
+        expect(model.delete).toBeDefined();
         expect(model.GetpopularProducts).toBeDefined();
     });
 
@@ -72,6 +74,42 @@ describe('ProductModel', () => {
         expect(stationery.length).toBe(2);
         expect(stationery[0].name).toBe('Notebook');
         expect(stationery[1].name).toBe('Pencil');
+    });
+
+    it('updates selected fields for a product and returns null for missing product', async () => {
+        await model.create({ name: 'Old Name', price: 20, category: 'Tools' });
+
+        const priceOnlyUpdate = await model.update(1, { price: 35 });
+        expect(priceOnlyUpdate).not.toBeNull();
+        expect(priceOnlyUpdate?.name).toBe('Old Name');
+        expect(Number(priceOnlyUpdate?.price)).toBe(35);
+        expect(priceOnlyUpdate?.category).toBe('tools');
+
+        const nameAndCategoryUpdate = await model.update(1, {
+            name: 'New Name',
+            category: 'Hardware'
+        });
+        expect(nameAndCategoryUpdate).not.toBeNull();
+        expect(nameAndCategoryUpdate?.name).toBe('New Name');
+        expect(Number(nameAndCategoryUpdate?.price)).toBe(35);
+        expect(nameAndCategoryUpdate?.category).toBe('hardware');
+
+        const missing = await model.update(999, { name: 'Missing' });
+        expect(missing).toBeNull();
+    });
+
+    it('deletes a product and returns null for missing product', async () => {
+        await model.create({ name: 'Delete Me', price: 9.5, category: 'misc' });
+
+        const deleted = await model.delete(1);
+        const foundAfterDelete = await model.show(1);
+        const missingDelete = await model.delete(999);
+
+        expect(deleted).not.toBeNull();
+        expect(deleted?.id).toBe(1);
+        expect(deleted?.name).toBe('Delete Me');
+        expect(foundAfterDelete).toBeNull();
+        expect(missingDelete).toBeNull();
     });
 
     it('returns most popular products from completed orders only and respects limit', async () => {
