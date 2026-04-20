@@ -9,7 +9,7 @@ describe('Users routes', () => {
     });
 
     beforeEach(async () => {
-        await DBService.query('TRUNCATE TABLE users RESTART IDENTITY CASCADE');
+        await DBService.query('TRUNCATE TABLE order_products, orders, products, users RESTART IDENTITY CASCADE');
     });
 
     it('POST /users/register creates a user and returns a token', async () => {
@@ -122,5 +122,56 @@ describe('Users routes', () => {
 
         expect(missingResponse.status).toBe(404);
         expect(missingResponse.body.code).toBe('USER_NOT_FOUND');
+    });
+
+    it('GET /users/:id includes the user 5 most recent purchases', async () => {
+        const registerResponse = await request(app).post('/users/register').send({
+            username: 'recentbuyer',
+            first_name: 'Recent',
+            last_name: 'Buyer',
+            password: 'secret123'
+        });
+
+        const token = registerResponse.body.jwtToken as string;
+        const userResult = await DBService.query<{ id: number }>(
+            'SELECT id FROM users WHERE username = $1', ['recentbuyer']);
+        const userId = userResult.rows[0].id;
+
+        for (let i = 1; i <= 6; i += 1) {
+            const product = await DBService.query<{ id: number }>(
+                'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id',
+                [`Route Recent Product ${i}`, 20 + i, 'tools']);
+
+            const order = await DBService.query<{ id: number }>(
+                `INSERT INTO orders (user_id, status) VALUES ($1, 'complete') RETURNING id`,
+                [userId]);
+
+            await DBService.query(
+                `INSERT INTO order_products (order_id, product_id, quantity) VALUES ($1, $2, $3)`,
+                [order.rows[0].id, product.rows[0].id, i]);
+        }
+
+        const activeProduct = await DBService.query<{ id: number }>(
+            'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id',
+            ['Route Active Product', 99, 'tools']);
+        const activeOrder = await DBService.query<{ id: number }>(
+            `INSERT INTO orders (user_id, status) VALUES ($1, 'active') RETURNING id`,
+            [userId]);
+        await DBService.query(
+            `INSERT INTO order_products (order_id, product_id, quantity) VALUES ($1, $2, $3)`,
+            [activeOrder.rows[0].id, activeProduct.rows[0].id, 1]);
+
+        const response = await request(app)
+            .get(`/users/${userId}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.code).toBe('USER_RETRIEVED');
+        expect(response.body.user.id).toBe(userId);
+        expect(response.body.user.recent_purchases.length).toBe(5);
+        expect(response.body.user.recent_purchases[0].name).toBe('Route Recent Product 6');
+        expect(response.body.user.recent_purchases[0].order_id).toBe(6);
+        expect(response.body.user.recent_purchases[4].name).toBe('Route Recent Product 2');
+        expect(response.body.user.recent_purchases.every((purchase: { name: string }) => purchase.name !== 'Route Active Product')).toBeTrue();
     });
 });
