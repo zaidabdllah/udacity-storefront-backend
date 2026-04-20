@@ -17,6 +17,19 @@ export type UserPublic = {
     last_name: string;
 };
 
+export type RecentPurchase = {
+    order_id: number;
+    product_id: number;
+    quantity: number;
+    name: string;
+    price: number | string;
+    category: string | null;
+};
+
+export type UserWithRecentPurchases = UserPublic & {
+    recent_purchases: RecentPurchase[];
+};
+
 export class UserModel {
     async index(): Promise<UserPublic[]> {
         try {
@@ -28,7 +41,7 @@ export class UserModel {
         }
     }
 
-    async show(identifier: number | string): Promise<UserPublic | null> {
+    async show(identifier: number | string): Promise<UserWithRecentPurchases | null> {
         try {
             let sql: string;
             let value: number | string;
@@ -43,9 +56,36 @@ export class UserModel {
             }
 
             const result = await DBService.query<UserPublic>(sql, [value]);
-            return result.rows[0] || null;
+            const user = result.rows[0];
+
+            if (!user) return null;
+
+            const recentPurchases = await this.getRecentPurchases(user.id);
+            return { ...user, recent_purchases: recentPurchases };
         } catch (err) {
             throw new Error(`failed to retrieve user (${identifier}), ${err}`);
+        }
+    }
+
+    private async getRecentPurchases(userId: number, limit = 5): Promise<RecentPurchase[]> {
+        try {
+            const sql = `SELECT o.id AS order_id,
+                    op.product_id,
+                    op.quantity,
+                    p.name,
+                    p.price,
+                    p.category
+                FROM orders o
+                INNER JOIN order_products op ON op.order_id = o.id
+                INNER JOIN products p ON p.id = op.product_id
+                WHERE o.user_id = $1 AND o.status = 'complete'
+                ORDER BY o.id DESC, op.id DESC
+                LIMIT $2;`;
+
+            const result = await DBService.query<RecentPurchase>(sql, [userId, limit]);
+            return result.rows;
+        } catch (err) {
+            throw new Error(`failed to retrieve recent purchases for user (${userId}), ${err}`);
         }
     }
 

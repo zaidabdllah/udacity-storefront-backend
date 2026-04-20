@@ -63,9 +63,10 @@ UserRouter.post('/register', async (req: Request, res: Response) => {
             });
         }
         const newUser = await userModel.create(userData);
+        delete newUser.password_digest; // Remove password from the response
         const token = jwt.sign({ id: newUser.id, username: newUser.username }, tokenSecret);
 
-        res.status(201).json({ ok: true, code: 'USER_CREATED', jwtToken: token });
+        res.status(201).json({ ok: true, code: 'USER_CREATED', user: newUser, jwtToken: token });
     } catch (error) {
         if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint')) {
             return res.status(409).json({
@@ -118,10 +119,10 @@ UserRouter.post('/login', async (req: Request, res: Response) => {
             });
         }
         const user = await userModel.authenticate(username, password);
-
+        delete user?.password_digest; // Remove password from the response
         if (user) {
             const token = jwt.sign({ id: user.id, username: user.username }, tokenSecret);
-            res.status(200).json({ ok: true, code: 'LOGIN_SUCCESS', jwtToken: token });
+            res.status(200).json({ ok: true, code: 'LOGIN_SUCCESS', user, jwtToken: token });
         } else {
             res.status(401).json({ ok: false, code: 'INVALID_CREDENTIALS', error: 'Invalid username or password' });
         }
