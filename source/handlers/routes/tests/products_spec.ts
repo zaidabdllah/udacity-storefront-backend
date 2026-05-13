@@ -54,7 +54,9 @@ describe('Products routes', () => {
         const response = await request(app).post('/products').set('Authorization', `Bearer ${token}`).send({
             name: 'Wireless Mouse',
             price: 25.99,
-            category: 'Accessories'
+            category: 'Accessories',
+            thumbnail: 'https://example.com/wireless-mouse.jpg',
+            description: 'Compact wireless mouse.'
         });
 
         expect(response.status).toBe(201);
@@ -63,6 +65,8 @@ describe('Products routes', () => {
         expect(response.body.product.name).toBe('Wireless Mouse');
         expect(Number(response.body.product.price)).toBeCloseTo(25.99, 2);
         expect(response.body.product.category).toBe('accessories');
+        expect(response.body.product.thumbnail).toBe('https://example.com/wireless-mouse.jpg');
+        expect(response.body.product.description).toBe('Compact wireless mouse.');
     });
 
     it('POST /products validates price format', async () => {
@@ -103,13 +107,20 @@ describe('Products routes', () => {
         const updateNameAndCategoryResponse = await request(app)
             .patch(`/products/${productId}`)
             .set('Authorization', `Bearer ${token}`)
-            .send({ name: 'New Mouse', category: 'Electronics' });
+            .send({
+                name: 'New Mouse',
+                category: 'Electronics',
+                thumbnail: 'https://example.com/new-mouse.jpg',
+                description: 'Updated mouse details.'
+            });
 
         expect(updateNameAndCategoryResponse.status).toBe(200);
         expect(updateNameAndCategoryResponse.body.code).toBe('PRODUCT_UPDATED');
         expect(updateNameAndCategoryResponse.body.product.name).toBe('New Mouse');
         expect(Number(updateNameAndCategoryResponse.body.product.price)).toBe(30);
         expect(updateNameAndCategoryResponse.body.product.category).toBe('electronics');
+        expect(updateNameAndCategoryResponse.body.product.thumbnail).toBe('https://example.com/new-mouse.jpg');
+        expect(updateNameAndCategoryResponse.body.product.description).toBe('Updated mouse details.');
     });
 
     it('PATCH /products/:id validates id and payload', async () => {

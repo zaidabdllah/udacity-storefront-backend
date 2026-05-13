@@ -31,13 +31,17 @@ describe('ProductModel', () => {
         const created = await model.create({
             name: 'Gaming Laptop',
             price: 1299.99,
-            category: 'Electronics'
+            category: 'Electronics',
+            thumbnail: 'https://example.com/gaming-laptop.jpg',
+            description: 'High performance gaming laptop.'
         });
 
         expect(created.id).toBe(1);
         expect(created.name).toBe('Gaming Laptop');
         expect(Number(created.price)).toBeCloseTo(1299.99, 2);
         expect(created.category).toBe('electronics');
+        expect(created.thumbnail).toBe('https://example.com/gaming-laptop.jpg');
+        expect(created.description).toBe('High performance gaming laptop.');
     });
 
     it('returns all products from index in ascending id order', async () => {
@@ -87,12 +91,16 @@ describe('ProductModel', () => {
 
         const nameAndCategoryUpdate = await model.update(1, {
             name: 'New Name',
-            category: 'Hardware'
+            category: 'Hardware',
+            thumbnail: 'https://example.com/new-name.jpg',
+            description: 'Updated product details.'
         });
         expect(nameAndCategoryUpdate).not.toBeNull();
         expect(nameAndCategoryUpdate?.name).toBe('New Name');
         expect(Number(nameAndCategoryUpdate?.price)).toBe(35);
         expect(nameAndCategoryUpdate?.category).toBe('hardware');
+        expect(nameAndCategoryUpdate?.thumbnail).toBe('https://example.com/new-name.jpg');
+        expect(nameAndCategoryUpdate?.description).toBe('Updated product details.');
 
         const missing = await model.update(999, { name: 'Missing' });
         expect(missing).toBeNull();

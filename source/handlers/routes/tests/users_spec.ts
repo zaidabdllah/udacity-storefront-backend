@@ -147,8 +147,8 @@ describe('Users routes', () => {
                 [userId]);
 
             await DBService.query(
-                `INSERT INTO order_products (order_id, product_id, quantity) VALUES ($1, $2, $3)`,
-                [order.rows[0].id, product.rows[0].id, i]);
+                `INSERT INTO order_products (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)`,
+                [order.rows[0].id, product.rows[0].id, i, 20 + i]);
         }
 
         const activeProduct = await DBService.query<{ id: number }>(
@@ -158,8 +158,8 @@ describe('Users routes', () => {
             `INSERT INTO orders (user_id, status) VALUES ($1, 'active') RETURNING id`,
             [userId]);
         await DBService.query(
-            `INSERT INTO order_products (order_id, product_id, quantity) VALUES ($1, $2, $3)`,
-            [activeOrder.rows[0].id, activeProduct.rows[0].id, 1]);
+            `INSERT INTO order_products (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)`,
+            [activeOrder.rows[0].id, activeProduct.rows[0].id, 1, 99]);
 
         const response = await request(app)
             .get(`/users/${userId}`)
@@ -170,6 +170,7 @@ describe('Users routes', () => {
         expect(response.body.user.id).toBe(userId);
         expect(response.body.user.recent_purchases.length).toBe(5);
         expect(response.body.user.recent_purchases[0].name).toBe('Route Recent Product 6');
+        expect(Number(response.body.user.recent_purchases[0].price)).toBe(26);
         expect(response.body.user.recent_purchases[0].order_id).toBe(6);
         expect(response.body.user.recent_purchases[4].name).toBe('Route Recent Product 2');
         expect(response.body.user.recent_purchases.every((purchase: { name: string }) => purchase.name !== 'Route Active Product')).toBeTrue();
