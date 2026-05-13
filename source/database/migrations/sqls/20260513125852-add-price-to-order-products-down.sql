@@ -1,0 +1,2 @@
+ALTER TABLE order_products
+DROP COLUMN IF EXISTS price;

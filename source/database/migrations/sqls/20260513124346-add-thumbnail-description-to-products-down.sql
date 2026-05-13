@@ -1,0 +1,4 @@
+
+ALTER TABLE products
+DROP COLUMN IF EXISTS thumbnail,
+DROP COLUMN IF EXISTS description;
