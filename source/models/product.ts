@@ -5,6 +5,8 @@ export type Product = {
     name: string;
     price: number | string;
     category?: string;
+    thumbnail?: string | null;
+    description?: string | null;
     total_sold?: number | string;
 };
 
@@ -31,8 +33,16 @@ export class ProductModel {
 
     async create(data: Product): Promise<Product> {
         try {   
-            const sql = 'INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING *';
-            const result = await DBService.query<Product>(sql, [data.name, data.price, data.category?.toLowerCase()]);
+            const sql = `INSERT INTO products (name, price, category, thumbnail, description)
+                VALUES ($1, $2, $3, $4, $5)
+                RETURNING *`;
+            const result = await DBService.query<Product>(sql, [
+                data.name,
+                data.price,
+                data.category?.toLowerCase(),
+                data.thumbnail ?? null,
+                data.description ?? null
+            ]);
             return result.rows[0];
         } catch (err) {
             throw new Error(`failed to create product (${data.name}), ${err}`);
@@ -52,7 +62,7 @@ export class ProductModel {
     async update(id: number, data: Partial<Product>): Promise<Product | null> {
         try {
             const setClauses: string[] = [];
-            const values: Array<string | number> = [];
+            const values: Array<string | number | null> = [];
 
             if (data.name !== undefined) {
                 values.push(data.name);
@@ -67,6 +77,16 @@ export class ProductModel {
             if (data.category !== undefined) {
                 values.push(data.category.toLowerCase());
                 setClauses.push(`category = $${values.length}`);
+            }
+
+            if (data.thumbnail !== undefined) {
+                values.push(data.thumbnail);
+                setClauses.push(`thumbnail = $${values.length}`);
+            }
+
+            if (data.description !== undefined) {
+                values.push(data.description);
+                setClauses.push(`description = $${values.length}`);
             }
 
             if (setClauses.length === 0) {
@@ -100,7 +120,7 @@ export class ProductModel {
 
     async GetpopularProducts(limit: number): Promise<Product[]> {
         try {
-            const sql = `SELECT p.id, p.name, p.price, p.category, SUM(oi.quantity) AS total_sold
+            const sql = `SELECT p.id, p.name, p.price, p.category, p.thumbnail, p.description, SUM(oi.quantity) AS total_sold
                 FROM products p
                 INNER JOIN order_products oi ON oi.product_id = p.id
                 INNER JOIN orders o ON o.id = oi.order_id

@@ -101,10 +101,22 @@ const seedProducts = async (products: ProductSeed[]): Promise<number[]> => {
     const params: Array<string | number> = [];
 
     products.forEach((product) => {
-        params.push(product.name, product.price, product.category);
+        params.push(
+            product.name,
+            product.price,
+            product.category,
+            product.thumbnail ?? `https://placehold.co/300x450?text=${encodeURIComponent(product.name)}`,
+            product.description ?? `${product.name} from the ${product.category} collection.`
+        );
     });
 
-    const insertProductsSql = buildBulkInsertSql('products', ['name', 'price', 'category'], products.length, 3, 'id');
+    const insertProductsSql = buildBulkInsertSql(
+        'products',
+        ['name', 'price', 'category', 'thumbnail', 'description'],
+        products.length,
+        5,
+        'id'
+    );
 
     const result = await DBService.query<{ id: number }>(insertProductsSql, params);
 
@@ -172,16 +184,21 @@ const addProductsToOrder = async (
 ): Promise<number> => {
     const pickedProductIds = pickRandomUniqueProductIds(productIds, minProducts, maxProducts);
     const params: number[] = [];
+    const priceResult = await DBService.query<{ id: number; price: number }>(
+        'SELECT id, price FROM products WHERE id = ANY($1::int[])',
+        [pickedProductIds]
+    );
+    const priceByProductId = new Map(priceResult.rows.map((row) => [row.id, row.price]));
 
     pickedProductIds.forEach((productId) => {
-        params.push(orderId, productId, randomInt(MIN_ITEM_QUANTITY, MAX_ITEM_QUANTITY));
+        params.push(orderId, productId, randomInt(MIN_ITEM_QUANTITY, MAX_ITEM_QUANTITY), Number(priceByProductId.get(productId)));
     });
 
     const insertOrderProductsSql = buildBulkInsertSql(
         'order_products',
-        ['order_id', 'product_id', 'quantity'],
+        ['order_id', 'product_id', 'quantity', 'price'],
         pickedProductIds.length,
-        3
+        4
     );
 
     await DBService.query(insertOrderProductsSql, params);

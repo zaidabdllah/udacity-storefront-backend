@@ -94,6 +94,44 @@ ProductRouter.post('/', verifyAuthToken, async (req: Request, res: Response) => 
             });
         }
 
+        if (productData.thumbnail !== undefined && productData.thumbnail !== null && typeof productData.thumbnail !== 'string') {
+            return res.status(400).json({
+                ok: false,
+                code: 'PRODUCT_THUMBNAIL_MUST_BE_STRING',
+                error: 'Product thumbnail must be a string'
+            });
+        }
+
+        if (typeof productData.thumbnail === 'string' && productData.thumbnail.trim().length > 500) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PRODUCT_THUMBNAIL_TOO_LONG',
+                error: 'Product thumbnail must not exceed 500 characters'
+            });
+        }
+
+        if (productData.description !== undefined && productData.description !== null && typeof productData.description !== 'string') {
+            return res.status(400).json({
+                ok: false,
+                code: 'PRODUCT_DESCRIPTION_MUST_BE_STRING',
+                error: 'Product description must be a string'
+            });
+        }
+
+        if (typeof productData.description === 'string' && productData.description.trim().length > 1000) {
+            return res.status(400).json({
+                ok: false,
+                code: 'PRODUCT_DESCRIPTION_TOO_LONG',
+                error: 'Product description must not exceed 1000 characters'
+            });
+        }
+
+        productData.name = productData.name.trim();
+        productData.price = Number(productData.price);
+        if (productData.category !== undefined) productData.category = productData.category.trim();
+        if (typeof productData.thumbnail === 'string') productData.thumbnail = productData.thumbnail.trim();
+        if (typeof productData.description === 'string') productData.description = productData.description.trim();
+
         const newProduct = await productmodel.create(productData);
         res.status(201).json({ ok: true, code: 'PRODUCT_CREATED', product: newProduct });
     } catch (error) {
@@ -116,12 +154,14 @@ ProductRouter.patch('/:id', verifyAuthToken, async (req: Request, res: Response)
         const hasName = hasOwnField(payload, 'name');
         const hasPrice = hasOwnField(payload, 'price');
         const hasCategory = hasOwnField(payload, 'category');
+        const hasThumbnail = hasOwnField(payload, 'thumbnail');
+        const hasDescription = hasOwnField(payload, 'description');
 
-        if (!hasName && !hasPrice && !hasCategory) {
+        if (!hasName && !hasPrice && !hasCategory && !hasThumbnail && !hasDescription) {
             return res.status(400).json({
                 ok: false,
                 code: 'PRODUCT_UPDATE_FIELDS_REQUIRED',
-                error: 'At least one field is required: name, price, category'
+                error: 'At least one field is required: name, price, category, thumbnail, description'
             });
         }
 
@@ -139,6 +179,42 @@ ProductRouter.patch('/:id', verifyAuthToken, async (req: Request, res: Response)
                     ok: false,
                     code: 'PRODUCT_NAME_TOO_LONG',
                     error: 'Product name must not exceed 150 characters'
+                });
+            }
+        }
+
+        if (hasThumbnail) {
+            if (payload.thumbnail !== null && typeof payload.thumbnail !== 'string') {
+                return res.status(400).json({
+                    ok: false,
+                    code: 'PRODUCT_THUMBNAIL_MUST_BE_STRING',
+                    error: 'Product thumbnail must be a string'
+                });
+            }
+
+            if (typeof payload.thumbnail === 'string' && payload.thumbnail.trim().length > 500) {
+                return res.status(400).json({
+                    ok: false,
+                    code: 'PRODUCT_THUMBNAIL_TOO_LONG',
+                    error: 'Product thumbnail must not exceed 500 characters'
+                });
+            }
+        }
+
+        if (hasDescription) {
+            if (payload.description !== null && typeof payload.description !== 'string') {
+                return res.status(400).json({
+                    ok: false,
+                    code: 'PRODUCT_DESCRIPTION_MUST_BE_STRING',
+                    error: 'Product description must be a string'
+                });
+            }
+
+            if (typeof payload.description === 'string' && payload.description.trim().length > 1000) {
+                return res.status(400).json({
+                    ok: false,
+                    code: 'PRODUCT_DESCRIPTION_TOO_LONG',
+                    error: 'Product description must not exceed 1000 characters'
                 });
             }
         }
@@ -200,6 +276,8 @@ ProductRouter.patch('/:id', verifyAuthToken, async (req: Request, res: Response)
         if (hasName) updateData.name = (payload.name as string).trim();
         if (hasPrice) updateData.price = Number(payload.price);
         if (hasCategory) updateData.category = (payload.category as string).trim();
+        if (hasThumbnail) updateData.thumbnail = typeof payload.thumbnail === 'string' ? payload.thumbnail.trim() : null;
+        if (hasDescription) updateData.description = typeof payload.description === 'string' ? payload.description.trim() : null;
 
         const updatedProduct = await productmodel.update(id, updateData);
 

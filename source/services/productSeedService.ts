@@ -4,6 +4,8 @@ export type ProductSeed = {
     name: string;
     price: number;
     category: string;
+    thumbnail?: string;
+    description?: string;
 };
 
 export const productsSeedData: ProductSeed[] = [
@@ -124,13 +126,19 @@ export const seedProducts = async (): Promise<void> => {
     const params: Array<string | number> = [];
 
     productsSeedData.forEach((product, index) => {
-        const offset = index * 3;
-        placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3})`);
-        params.push(product.name, product.price, product.category);
+        const offset = index * 5;
+        placeholders.push(`($${offset + 1}, $${offset + 2}, $${offset + 3}, $${offset + 4}, $${offset + 5})`);
+        params.push(
+            product.name,
+            product.price,
+            product.category,
+            product.thumbnail ?? `https://placehold.co/300x450?text=${encodeURIComponent(product.name)}`,
+            product.description ?? `${product.name} from the ${product.category} collection.`
+        );
     });
 
     const insertSql = `
-        INSERT INTO products (name, price, category)
+        INSERT INTO products (name, price, category, thumbnail, description)
         VALUES ${placeholders.join(',\n')}
     `;
 

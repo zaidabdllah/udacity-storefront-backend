@@ -16,6 +16,11 @@ export type OrderProductPayload = {
     order_id: number;
     product_id: number;
     quantity?: number;
+    price?: number | string;
+    name?: string;
+    category?: string | null;
+    thumbnail?: string | null;
+    description?: string | null;
 };
 
 export class OrderModel {
@@ -50,18 +55,25 @@ export class OrderModel {
                 throw new Error(`order not active with id ${addProduct.order_id}`);
             }
 
-            const quantityToAdd = Number(addProduct.quantity) ?? 1;
+            const quantityToAdd = addProduct.quantity === undefined ? 1 : Number(addProduct.quantity);
             if (quantityToAdd <= 0 || !Number.isInteger(quantityToAdd)) {
                 throw new Error(`quantity must be a positive integer`);
             }
-            const sql = `INSERT INTO order_products (order_id, product_id, quantity)
-            VALUES ($1, $2, $3)
+            const ProductCheckSQL = 'SELECT price FROM products WHERE id = $1';
+            const productCheckResult = await DBService.query<{ price: number | string }>(ProductCheckSQL, [addProduct.product_id]);
+            if (productCheckResult.rows.length === 0) {
+                throw new Error(`product not found with id ${addProduct.product_id}`);
+            }
+            const productPrice = productCheckResult.rows[0].price;
+
+            const sql = `INSERT INTO order_products (order_id, product_id, quantity, price)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (order_id, product_id)
             DO UPDATE
             SET quantity = order_products.quantity + EXCLUDED.quantity
             RETURNING *;`;
 
-            const result = await DBService.query(sql, [addProduct.order_id, addProduct.product_id, quantityToAdd]);
+            const result = await DBService.query(sql, [addProduct.order_id, addProduct.product_id, quantityToAdd, productPrice]);
 
             return result.rows[0] as OrderProductPayload;
         } catch (err) {
@@ -161,8 +173,10 @@ export class OrderModel {
             SELECT
                 p.id AS product_id,
                 p.name,
-                p.price,
+                op.price,
                 p.category,
+                p.thumbnail,
+                p.description,
                 op.quantity
             FROM order_products op
             LEFT JOIN products p ON p.id = op.product_id

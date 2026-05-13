@@ -74,7 +74,7 @@ OrderRouter.post('/:orderId/product', verifyAuthToken, async (req: Request, res:
             return res.status(404).json({ ok: false, code: 'ORDER_NOT_FOUND', error: 'Order not found' });
         } else if (error instanceof Error && error.message.includes('order not active')) {
             return res.status(400).json({ ok: false, code: 'ORDER_NOT_ACTIVE', error: 'Order not active' });
-        } else if (error instanceof Error && error.message.includes('foreign key constraint')) {
+        } else if (error instanceof Error && (error.message.includes('foreign key constraint') || error.message.includes('product not found'))) {
             return res.status(404).json({ ok: false, code: 'PRODUCT_NOT_FOUND', error: `Product not found with id ${payload.product_id}` });
         } else {
             return res.status(500).json({ ok: false, code: 'INTERNAL_SERVER_ERROR', error: `An unexpected error occurred: ${error instanceof Error ? error.message : String(error)}` });

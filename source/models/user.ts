@@ -24,6 +24,8 @@ export type RecentPurchase = {
     name: string;
     price: number | string;
     category: string | null;
+    thumbnail: string | null;
+    description: string | null;
 };
 
 export type UserWithRecentPurchases = UserPublic & {
@@ -73,8 +75,10 @@ export class UserModel {
                     op.product_id,
                     op.quantity,
                     p.name,
-                    p.price,
-                    p.category
+                    op.price,
+                    p.category,
+                    p.thumbnail,
+                    p.description
                 FROM orders o
                 INNER JOIN order_products op ON op.order_id = o.id
                 INNER JOIN products p ON p.id = op.product_id
