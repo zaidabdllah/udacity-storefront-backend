@@ -13,11 +13,11 @@ describe('OrderModel', () => {
         return result.rows[0].id;
     };
 
-    const createProduct = async (name: string): Promise<number> => {
+    const createProduct = async (name: string, price = 10.5): Promise<number> => {
         const result = await DBService.query<{ id: number }>(
             `INSERT INTO products (name, price, category)
              VALUES ($1, $2, $3) RETURNING id`,
-            [name, 10.5, 'tools']
+            [name, price, 'tools']
         );
         return result.rows[0].id;
     };
@@ -61,7 +61,7 @@ describe('OrderModel', () => {
 
     it('adds a product to an active order and increments quantity for the same product', async () => {
         const userId = await createUser('qtyowner');
-        const productId = await createProduct('Hammer');
+        const productId = await createProduct('Hammer', 12.75);
         const order = await model.getOrCreateActiveOrder({ user_id: userId });
 
         const firstAdd = await model.addProductToOrder({
@@ -76,14 +76,17 @@ describe('OrderModel', () => {
         });
 
         expect(firstAdd.quantity).toBe(2);
+        expect(Number(firstAdd.price)).toBeCloseTo(12.75, 2);
         expect(secondAdd.quantity).toBe(5);
+        expect(Number(secondAdd.price)).toBeCloseTo(12.75, 2);
 
-        const rows = await DBService.query<{ quantity: number }>(
-            'SELECT quantity FROM order_products WHERE order_id = $1 AND product_id = $2',
+        const rows = await DBService.query<{ quantity: number; price: number | string }>(
+            'SELECT quantity, price FROM order_products WHERE order_id = $1 AND product_id = $2',
             [order.id, productId]
         );
         expect(rows.rows.length).toBe(1);
         expect(rows.rows[0].quantity).toBe(5);
+        expect(Number(rows.rows[0].price)).toBeCloseTo(12.75, 2);
     });
 
     it('updates product quantity in an order', async () => {
@@ -152,6 +155,7 @@ describe('OrderModel', () => {
         expect(checkedOut.items?.length).toBe(1);
         expect(checkedOut.items?.[0].product_id).toBe(productId);
         expect(checkedOut.items?.[0].quantity).toBe(2);
+        expect(Number(checkedOut.items?.[0].price)).toBeCloseTo(10.5, 2);
 
         expect(completed.length).toBe(1);
         expect(completed[0].id).toBe(order.id);

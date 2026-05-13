@@ -45,7 +45,9 @@ Authorization: Bearer <jwtToken>
   "id": 1,
   "name": "Wireless Mouse",
   "price": "25.99",
-  "category": "accessories"
+  "category": "accessories",
+  "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+  "description": "Compact wireless mouse for daily productivity."
 }
 ```
 
@@ -56,6 +58,8 @@ Authorization: Bearer <jwtToken>
   "name": "Wireless Mouse",
   "price": "25.99",
   "category": "accessories",
+  "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+  "description": "Compact wireless mouse for daily productivity.",
   "total_sold": "18"
 }
 ```
@@ -84,7 +88,9 @@ Authorization: Bearer <jwtToken>
       "quantity": 2,
       "name": "Mechanical Keyboard",
       "price": "99.95",
-      "category": "accessories"
+      "category": "accessories",
+      "thumbnail": "https://placehold.co/300x450?text=Mechanical%20Keyboard",
+      "description": "Tactile keyboard with backlit keys."
     }
   ]
 }
@@ -110,6 +116,8 @@ Authorization: Bearer <jwtToken>
       "name": "Tape Measure",
       "price": "19.99",
       "category": "tools",
+      "thumbnail": "https://placehold.co/300x450?text=Tape%20Measure",
+      "description": "Durable measuring tape for home and workshop use.",
       "quantity": 2
     }
   ]
@@ -122,6 +130,7 @@ Authorization: Bearer <jwtToken>
   "id": 7,
   "order_id": 5,
   "product_id": 3,
+  "price": "19.99",
   "quantity": 2
 }
 ```
@@ -159,6 +168,8 @@ Expected databases:
 | `name` | `VARCHAR(150)` | `NOT NULL` | Product name |
 | `price` | `NUMERIC(10,2)` | `NOT NULL`, `CHECK (price >= 0)` | Monetary value |
 | `category` | `VARCHAR(100)` | nullable | Stored lowercase by the model |
+| `thumbnail` | `TEXT` | nullable | Product image URL or path |
+| `description` | `TEXT` | nullable | Product details for catalog display |
 
 ### Table: `orders`
 | Column | Type | Constraints | Notes |
@@ -174,6 +185,7 @@ Expected databases:
 | `order_id` | `INTEGER` | `NOT NULL`, `REFERENCES orders(id) ON DELETE CASCADE` | Related order |
 | `product_id` | `INTEGER` | `NOT NULL`, `REFERENCES products(id) ON DELETE CASCADE` | Related product |
 | `quantity` | `INTEGER` | `NOT NULL`, `CHECK (quantity > 0)` | Quantity inside order |
+| `price` | `NUMERIC(10,2)` | `NOT NULL`, `DEFAULT 0` | Snapshot of product price when the item was added |
 
 Additional constraint:
 
@@ -401,7 +413,9 @@ Success response:
       "id": 1,
       "name": "Wireless Mouse",
       "price": "25.99",
-      "category": "accessories"
+      "category": "accessories",
+      "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+      "description": "Compact wireless mouse for daily productivity."
     }
   ]
 }
@@ -439,7 +453,9 @@ Success response:
     "id": 1,
     "name": "Wireless Mouse",
     "price": "25.99",
-    "category": "accessories"
+    "category": "accessories",
+    "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+    "description": "Compact wireless mouse for daily productivity."
   }
 }
 ```
@@ -464,7 +480,9 @@ Request body:
 {
   "name": "Wireless Mouse",
   "price": 25.99,
-  "category": "Accessories"
+  "category": "Accessories",
+  "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+  "description": "Compact wireless mouse for daily productivity."
 }
 ```
 
@@ -479,7 +497,9 @@ Success response:
     "id": 1,
     "name": "Wireless Mouse",
     "price": "25.99",
-    "category": "accessories"
+    "category": "accessories",
+    "thumbnail": "https://placehold.co/300x450?text=Wireless%20Mouse",
+    "description": "Compact wireless mouse for daily productivity."
   }
 }
 ```
@@ -494,6 +514,10 @@ Possible errors:
 | `400` | `PRODUCT_PRICE_MUST_BE_NUMBER` | `price` cannot be converted to a valid number |
 | `400` | `PRODUCT_PRICE_NEGATIVE` | `price` is below zero |
 | `400` | `PRODUCT_PRICE_NOT_LOGICAL` | `price` exceeds the application upper validation limit |
+| `400` | `PRODUCT_THUMBNAIL_MUST_BE_STRING` | `thumbnail` is provided but is not a string |
+| `400` | `PRODUCT_THUMBNAIL_TOO_LONG` | `thumbnail` exceeds 500 characters |
+| `400` | `PRODUCT_DESCRIPTION_MUST_BE_STRING` | `description` is provided but is not a string |
+| `400` | `PRODUCT_DESCRIPTION_TOO_LONG` | `description` exceeds 1000 characters |
 | `401` | `MISSING_TOKEN` | No token header was sent |
 | `401` | `INVALID_TOKEN_FORMAT` | Authorization header is malformed |
 | `401` | `INVALID_TOKEN` | JWT cannot be verified |
@@ -515,12 +539,14 @@ Request body example:
 {
   "name": "New Mouse",
   "price": 30,
-  "category": "Electronics"
+  "category": "Electronics",
+  "thumbnail": "https://placehold.co/300x450?text=New%20Mouse",
+  "description": "Updated product description."
 }
 ```
 
 Request body rules:
-- at least one of `name`, `price`, or `category` must be provided
+- at least one of `name`, `price`, `category`, `thumbnail`, or `description` must be provided
 - the endpoint supports partial updates
 
 Success response:
@@ -534,7 +560,9 @@ Success response:
     "id": 1,
     "name": "New Mouse",
     "price": "30.00",
-    "category": "electronics"
+    "category": "electronics",
+    "thumbnail": "https://placehold.co/300x450?text=New%20Mouse",
+    "description": "Updated product description."
   }
 }
 ```
@@ -552,6 +580,10 @@ Possible errors:
 | `400` | `PRODUCT_PRICE_NOT_LOGICAL` | Provided `price` exceeds the application upper validation limit |
 | `400` | `PRODUCT_CATEGORY_EMPTY` | Provided `category` is empty or whitespace |
 | `400` | `PRODUCT_CATEGORY_TOO_LONG` | Provided `category` exceeds 100 characters |
+| `400` | `PRODUCT_THUMBNAIL_MUST_BE_STRING` | Provided `thumbnail` is not a string or null |
+| `400` | `PRODUCT_THUMBNAIL_TOO_LONG` | Provided `thumbnail` exceeds 500 characters |
+| `400` | `PRODUCT_DESCRIPTION_MUST_BE_STRING` | Provided `description` is not a string or null |
+| `400` | `PRODUCT_DESCRIPTION_TOO_LONG` | Provided `description` exceeds 1000 characters |
 | `401` | `MISSING_TOKEN` | No token header was sent |
 | `401` | `INVALID_TOKEN_FORMAT` | Authorization header is malformed |
 | `401` | `INVALID_TOKEN` | JWT cannot be verified |
@@ -585,7 +617,9 @@ Success response:
     "id": 1,
     "name": "Delete Target",
     "price": "22.00",
-    "category": "tools"
+    "category": "tools",
+    "thumbnail": null,
+    "description": null
   }
 }
 ```
@@ -628,7 +662,9 @@ Success response:
       "id": 1,
       "name": "USB-C Cable",
       "price": "7.50",
-      "category": "accessories"
+      "category": "accessories",
+      "thumbnail": null,
+      "description": null
     }
   ]
 }
@@ -668,6 +704,8 @@ Success response:
       "name": "Route Hammer",
       "price": "12.00",
       "category": "tools",
+      "thumbnail": null,
+      "description": null,
       "total_sold": "6"
     }
   ]
@@ -715,6 +753,8 @@ Success response:
         "name": "Tape Measure",
         "price": "19.99",
         "category": "tools",
+        "thumbnail": "https://placehold.co/300x450?text=Tape%20Measure",
+        "description": "Durable measuring tape for home and workshop use.",
         "quantity": 2
       }
     ]
@@ -767,6 +807,7 @@ Success response:
     "id": 7,
     "order_id": 5,
     "product_id": 3,
+    "price": "19.99",
     "quantity": 2
   }
 }
@@ -817,6 +858,7 @@ Success response:
     "id": 7,
     "order_id": 5,
     "product_id": 3,
+    "price": "19.99",
     "quantity": 5
   }
 }
@@ -919,6 +961,8 @@ Success response:
         "name": "Saw",
         "price": "19.99",
         "category": "tools",
+        "thumbnail": null,
+        "description": null,
         "quantity": 2
       }
     ]

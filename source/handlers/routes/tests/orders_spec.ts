@@ -17,10 +17,10 @@ describe('Orders routes', () => {
         return { token, userId: result.rows[0].id };
     };
 
-    const createProduct = async (name: string): Promise<number> => {
+    const createProduct = async (name: string, price = 19.99): Promise<number> => {
         const result = await DBService.query<{ id: number }>(
             `INSERT INTO products (name, price, category) VALUES ($1, $2, $3) RETURNING id`,
-            [name, 19.99, 'tools']
+            [name, price, 'tools']
         );
         return result.rows[0].id;
     };
@@ -65,7 +65,7 @@ describe('Orders routes', () => {
 
     it('POST /orders/:orderId/product adds a product to the order', async () => {
         const { token, userId } = await registerAndGetAuth('ordersaddproduct');
-        const productId = await createProduct('Tape Measure');
+        const productId = await createProduct('Tape Measure', 24.5);
         const orderResponse = await request(app)
             .get(`/orders/current/${userId}`)
             .set('Authorization', `Bearer ${token}`);
@@ -81,6 +81,7 @@ describe('Orders routes', () => {
         expect(response.body.productInOrder.order_id).toBe(orderId);
         expect(response.body.productInOrder.product_id).toBe(productId);
         expect(response.body.productInOrder.quantity).toBe(2);
+        expect(Number(response.body.productInOrder.price)).toBeCloseTo(24.5, 2);
     });
 
     it('PATCH /orders/:orderId/product updates product quantity', async () => {

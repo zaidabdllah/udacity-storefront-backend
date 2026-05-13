@@ -254,6 +254,8 @@ The complete API contract, request/response bodies, database schema, and error c
 - `name VARCHAR(150) NOT NULL`
 - `price NUMERIC(10,2) NOT NULL`
 - `category VARCHAR(100)`
+- `thumbnail TEXT`
+- `description TEXT`
 
 ### `orders`
 - `id SERIAL PRIMARY KEY`
@@ -265,6 +267,7 @@ The complete API contract, request/response bodies, database schema, and error c
 - `order_id INTEGER NOT NULL REFERENCES orders(id) ON DELETE CASCADE`
 - `product_id INTEGER NOT NULL REFERENCES products(id) ON DELETE CASCADE`
 - `quantity INTEGER NOT NULL CHECK (quantity > 0)`
+- `price NUMERIC(10,2) NOT NULL DEFAULT 0`
 - `UNIQUE (order_id, product_id)`
 
 ## Project Structure
