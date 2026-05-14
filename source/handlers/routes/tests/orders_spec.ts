@@ -58,9 +58,40 @@ describe('Orders routes', () => {
         expect(firstResponse.status).toBe(200);
         expect(firstResponse.body.code).toBe('ORDER_CREATED_OR_RETRIEVED');
         expect(firstResponse.body.order.status).toBe('active');
+        expect(firstResponse.body.order.total_price).toBe(0);
+        expect(firstResponse.body.order.total_quantity).toBe(0);
 
         expect(secondResponse.status).toBe(200);
         expect(secondResponse.body.order.id).toBe(firstResponse.body.order.id);
+    });
+
+    it('GET /orders/current/:userId returns active order totals', async () => {
+        const { token, userId } = await registerAndGetAuth('orderstotals');
+        const firstProductId = await createProduct('Square Tool', 10.25);
+        const secondProductId = await createProduct('Marking Pencil', 3.5);
+
+        const orderResponse = await request(app)
+            .get(`/orders/current/${userId}`)
+            .set('Authorization', `Bearer ${token}`);
+        const orderId = orderResponse.body.order.id as number;
+
+        await request(app)
+            .post(`/orders/${orderId}/product`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ product_id: firstProductId, quantity: 2 });
+        await request(app)
+            .post(`/orders/${orderId}/product`)
+            .set('Authorization', `Bearer ${token}`)
+            .send({ product_id: secondProductId, quantity: 3 });
+
+        const response = await request(app)
+            .get(`/orders/current/${userId}`)
+            .set('Authorization', `Bearer ${token}`);
+
+        expect(response.status).toBe(200);
+        expect(response.body.code).toBe('ORDER_CREATED_OR_RETRIEVED');
+        expect(response.body.order.total_price).toBe(31);
+        expect(response.body.order.total_quantity).toBe(5);
     });
 
     it('POST /orders/:orderId/product adds a product to the order', async () => {

@@ -747,6 +747,8 @@ Success response:
     "id": 5,
     "user_id": 1,
     "status": "active",
+    "total_price": 39.98,
+    "total_quantity": 2,
     "items": [
       {
         "product_id": 3,

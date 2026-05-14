@@ -4,6 +4,8 @@ export type Order = {
     id: number;
     user_id: number;
     status: 'active' | 'complete';
+    total_price?: number;
+    total_quantity?: number;
     items?: OrderProductPayload[];
 };
 
@@ -35,12 +37,12 @@ export class OrderModel {
             const existingOrderResult = await DBService.query<Order>(existingOrderSQL, [data.user_id, 'active']);
             if (existingOrderResult.rows.length > 0) {
                 existingOrderResult.rows[0].items = await this.getProductsInOrder(existingOrderResult.rows[0].id);
-                return existingOrderResult.rows[0] as Order;
+                return this.withOrderTotals(existingOrderResult.rows[0] as Order);
             }
             const sql = 'INSERT INTO orders (user_id, status) VALUES ($1, $2) RETURNING *';
             const result = await DBService.query<Order>(sql, [data.user_id, 'active']);
             result.rows[0].items = [];
-            return result.rows[0] as Order;
+            return this.withOrderTotals(result.rows[0] as Order);
         } catch (err) {
             throw new Error(`failed to create order, ${err}`);
         }
@@ -152,7 +154,7 @@ export class OrderModel {
             RETURNING *;`;
             const result = await DBService.query(sql, [orderId]);
             result.rows[0].items = await this.getProductsInOrder(result.rows[0].id);
-            return result.rows[0] as Order;
+            return this.withOrderTotals(result.rows[0] as Order);
         } catch (err) {
             throw new Error(`failed to checkout order with id ${orderId}, ${err}`);
         }
@@ -187,5 +189,23 @@ export class OrderModel {
         } catch (err) {
             throw new Error(`failed to get products in order with id ${orderId}, ${err}`);
         }
+    }
+    private withOrderTotals(order: Order): Order {
+        const items = order.items ?? [];
+        const totalQuantity = items.reduce((sum, item) => sum + Number(item.quantity ?? 0), 0);
+        const totalPrice = items.reduce((sum, item) => {
+            const price = Number(item.price ?? 0);
+            const quantity = Number(item.quantity ?? 0);
+            return sum + price * quantity;
+        }, 0);
+
+        return {
+            id: order.id,
+            user_id: order.user_id,
+            status: order.status,
+            total_price: Number(totalPrice.toFixed(2)),
+            total_quantity: totalQuantity,
+            items: order.items
+        };
     }
 }

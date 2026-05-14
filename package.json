@@ -22,6 +22,8 @@
     "seed:products:test": "cross-env ENV=test ts-node source/services/productSeedService.ts",
     "seed:dump": "ts-node source/services/databaseDumpSeedService.ts",
     "seed:dump:test": "cross-env ENV=test ts-node source/services/databaseDumpSeedService.ts",
+    "seed:MyStoreProducts": "ts-node source/services/myStoreSeedService.ts",
+    "seed:MyStoreProducts:test": "cross-env ENV=test ts-node source/services/myStoreSeedService.ts",
     "migrate:create": "db-migrate create --sql-file --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations",
     "migrate:up": "db-migrate up --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations --env dev",
     "migrate:down": "db-migrate down --config ./source/database/migrations/database.json --migrations-dir ./source/database/migrations --env dev",
