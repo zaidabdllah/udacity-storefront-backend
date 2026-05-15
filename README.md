@@ -169,6 +169,28 @@ Run against test database:
 npm run seed:products:test
 ```
 
+### `source/services/myStoreSeedService.ts`
+Purpose:
+- truncates the `products` table with `RESTART IDENTITY CASCADE`
+- inserts the product data used by the `MyStore frontend` project
+- includes product thumbnails and descriptions so the frontend can render the store catalog
+
+When to use it:
+- when you want to prepare backend product data for the `MyStore frontend` project
+- when the frontend needs a clean catalog that matches its expected demo products
+
+Run against development database:
+
+```bash
+npm run seed:MyStoreProducts
+```
+
+Run against test database:
+
+```bash
+npm run seed:MyStoreProducts:test
+```
+
 ## Start the Server
 Development watch mode:
 
